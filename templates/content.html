@@ -1,0 +1,86 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Courses - Virtual Classroom</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+    <div class="w-full max-w-5xl mx-auto">
+        <!-- Navigation -->
+        <nav class="bg-white shadow-md rounded-lg p-4 mb-6">
+            <div class="flex items-center justify-between">
+                <div class="text-2xl font-bold text-indigo-600">Virtual Classroom</div>
+                <div class="space-x-4">
+                    <a href="/" class="text-gray-600 hover:text-indigo-600">Home</a>
+                    <a href="/courses" class="text-indigo-600 font-semibold">Courses</a>
+                    <a href="/login" class="text-gray-600 hover:text-indigo-600">Login</a>
+                    <a href="/register" class="text-gray-600 hover:text-indigo-600">Register</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Courses Section -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Available Courses</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for course in courses %}
+                <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition">
+                    <h3 class="text-lg font-semibold text-gray-800">{{ course.title }}</h3>
+                    <p class="text-gray-600 mt-2">{{ course.description }}</p>
+                    <div class="mt-4">
+                        <span class="inline-block bg-indigo-100 text-indigo-800 text-sm font-medium px-2.5 py-0.5 rounded">{{ course.badge }}</span>
+                        <a href="#" class="block mt-4 bg-indigo-600 text-white text-center py-2 px-4 rounded-md hover:bg-indigo-700">Enroll Now</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center text-gray-500 text-sm mt-8">
+            © 2025 Virtual Classroom. All rights reserved.
+        </footer>
+    </div>
+</body>
+</html>
